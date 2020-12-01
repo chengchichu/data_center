@@ -40,17 +40,17 @@ def query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_
         for experiment in subs.experiments.values():
             EL = experiment.label
             exps = subs.experiments[EL]
-            for iscan in exps.scans.values():
-                dicom_tag = iscan.read_dicom()    
-                SCL = 'Scout' # figure out how to get scan session name
+            for iscan in exps.scans.keys():                
+                SCL = iscan # figure out how to get scan session name
+                dicom_tag = exps.scans[SCL].read_dicom()                                     
                 file_path = os.path.join(pj_path, SL, EL, SCL)
                 if dicom_tag[dicom_query_field].value == dicom_query_value: 
                    files_paths.append(file_path)
-                   download_path = os.path.join(download_root, SCL)
+                   download_path = os.path.join(download_root, SL, EL, SCL)
                    if (os.path.isdir(download_path)):
                       exps.scans[SCL].download_dir(download_path)
                    else: 
-                      os.mkdir(download_path) 
+                      os.makedirs(download_path) 
                       exps.scans[SCL].download_dir(download_path)
                    #exps.scans[SCL].download_dir('/home/anpo/Desktop/DataForDBtest/single_scan')
     return files_paths    
