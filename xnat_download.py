@@ -7,33 +7,19 @@ Created on Mon Nov 30 13:10:59 2020
 """
 
 import os, os.path
-#import zipfile
 import xnat
 
 
-server_data_root_path = 'http://10.30.223.96/xnat-docker-compose/xnat-data/archive'
-download_root = '/home/anpo/Desktop/DataForDBtest'
+def connect_xnat(url, usr, password):
 
-# create server connection object
-session = xnat.connect('http://10.30.223.96', user='anpo', password='espesp043')
-#connection = xnat.connect('http://10.30.223.96')
-
-# here I assumed querying files based on dicom tag is not cross projects
-projects = session.projects
-
-project_name = "test_pj2"
-pj_path = os.path.join(server_data_root_path, project_name)
-
-dicom_query_field = 'Modality'
-dicom_query_value = 'CT'
+    session = xnat.connect(url, user=usr, password=password)
+    return session
 
 
 def query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_value, download_root):
 
-    files_paths = []
-    
-    pj = projects[project_name]
-    
+    files_paths = []    
+    pj = projects[project_name]    
     for subject in pj.subjects.values():
         SL = subject.label
         subs = pj.subjects[SL]
@@ -41,7 +27,7 @@ def query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_
             EL = experiment.label
             exps = subs.experiments[EL]
             for iscan in exps.scans.keys():                
-                SCL = iscan # figure out how to get scan session name
+                SCL = iscan 
                 dicom_tag = exps.scans[SCL].read_dicom()                                     
                 file_path = os.path.join(pj_path, SL, EL, SCL)
                 if dicom_tag[dicom_query_field].value == dicom_query_value: 
@@ -51,11 +37,12 @@ def query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_
                       exps.scans[SCL].download_dir(download_path)
                    else: 
                       os.makedirs(download_path) 
-                      exps.scans[SCL].download_dir(download_path)
-                   #exps.scans[SCL].download_dir('/home/anpo/Desktop/DataForDBtest/single_scan')
+                      exps.scans[SCL].download_dir(download_path)                      
     return files_paths    
     
-files_paths = query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_value, download_root)  
+
+
+
 
 
 
