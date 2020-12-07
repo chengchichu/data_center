@@ -6,8 +6,10 @@ Created on Mon Nov 30 13:10:59 2020
 @author: anpo
 """
 
+#from ismember import ismember
 import os, os.path
 import xnat
+#import pdb
 
 
 def connect_xnat(url, usr, password):
@@ -30,14 +32,19 @@ def query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_
                 SCL = iscan 
                 dicom_tag = exps.scans[SCL].read_dicom()                                     
                 file_path = os.path.join(pj_path, SL, EL, SCL)
-                if dicom_tag[dicom_query_field].value == dicom_query_value: 
-                   files_paths.append(file_path)
-                   download_path = os.path.join(download_root, SL, EL, SCL)
-                   if (os.path.isdir(download_path)):
-                      exps.scans[SCL].download_dir(download_path)
-                   else: 
-                      os.makedirs(download_path) 
-                      exps.scans[SCL].download_dir(download_path)                      
+                if (dicom_query_field in dicom_tag.dir()):
+                    if dicom_tag[dicom_query_field].value in dicom_query_value: 
+                        files_paths.append(file_path)
+                        download_path = os.path.join(download_root, SL, EL, SCL)
+                        if (os.path.isdir(download_path)):
+                            exps.scans[SCL].download_dir(download_path)
+                        else: 
+                            os.makedirs(download_path) 
+                            exps.scans[SCL].download_dir(download_path) 
+                    else:
+                        print('field exist, value did not match')    
+                else:
+                    print('query field did not exist')
     return files_paths    
     
 
