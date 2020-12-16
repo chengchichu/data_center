@@ -9,7 +9,8 @@ Created on Mon Nov 30 13:10:59 2020
 #from ismember import ismember
 import os, os.path
 import xnat
-#import pdb
+import numpy as np
+import pdb
 
 
 def connect_xnat(url, usr, password):
@@ -18,10 +19,10 @@ def connect_xnat(url, usr, password):
     return session
 
 
-def query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_value, download_root):
+def query_dicom(project_name, session, pj_path, dicom_query, download_root):
 
     files_paths = []    
-    pj = projects[project_name]    
+    pj = session.projects[project_name]    
     for subject in pj.subjects.values():
         SL = subject.label
         subs = pj.subjects[SL]
@@ -32,8 +33,10 @@ def query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_
                 SCL = iscan 
                 dicom_tag = exps.scans[SCL].read_dicom()                                     
                 file_path = os.path.join(pj_path, SL, EL, SCL)
-                if (dicom_query_field in dicom_tag.dir()):
-                    if dicom_tag[dicom_query_field].value in dicom_query_value: 
+                df, dv = dict_keys(dicom_query)  
+                #pdb.set_trace() % careful dicom_tag.dir not list all?
+                if all(ismember0(df, dicom_tag.dir())):                   
+                    if value_check(dicom_tag, df, dv): 
                         files_paths.append(file_path)
                         download_path = os.path.join(download_root, SL, EL, SCL)
                         if (os.path.isdir(download_path)):
@@ -47,10 +50,32 @@ def query_dicom(project_name, projects, pj_path, dicom_query_field, dicom_query_
                     print('query field did not exist')
     return files_paths    
     
+def ismember0(a,b):
+    
+    B_unique_sorted, B_idx = np.unique(a, return_index=True)
+    B_in_A_bool = np.in1d(B_unique_sorted, b, assume_unique=True)
+    return B_in_A_bool
+    
+def dict_keys(dicom_query):
+    df = []
+    dv = []
+    for i in dicom_query.keys():    
+        df.append(i)
+        fv = dicom_query[i]
+        if type(fv) == str: 
+           fv = fv.lower()
+        dv.append(fv)
+    return df, dv
 
-
-
-
+def value_check(dicom_tag,df,list_value):
+    query_v = []
+    for i in df:
+        query_v.append(str(dicom_tag[i].value).lower())  
+    if query_v == list_value: 
+       out = True
+    else:
+       out = False
+    return out   
 
 
 # test2_pj = session.projects["test_pj2"]
