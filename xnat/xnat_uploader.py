@@ -10,7 +10,7 @@ import xnat
 import pydicom
 import pandas as pd
 import glob
-#import pdb
+import pdb
 
 # https://xnat.readthedocs.io/en/latest/static/tutorial.html
 
@@ -45,7 +45,7 @@ def img_uploader(root_path, session, project_name, patient_ID, image_No):
     if os.path.isfile(file_to_check):
        os.remove(file_to_check) 
     zip_dir(file_path, zip_dir_name)
-   # pdb.set_trace()
+    #pdb.set_trace()
     experiment = session.services.import_(os.path.join(file_path, zip_dir_name),
                                           project=project_name,
                                           subject=patient_ID,
