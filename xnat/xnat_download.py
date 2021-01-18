@@ -10,7 +10,7 @@ Created on Mon Nov 30 13:10:59 2020
 import os, os.path
 import xnat
 import numpy as np
-import pdb
+# import pdb
 
 
 def connect_xnat(url, usr, password):
@@ -21,7 +21,10 @@ def connect_xnat(url, usr, password):
 
 def query_dicom(project_name, session, pj_path, dicom_query, download_root):
 
-    files_paths = []    
+    files_paths = [] 
+    query_result = []
+    scans_obj = []
+    download_paths = []
     pj = session.projects[project_name]    
     for subject in pj.subjects.values():
         SL = subject.label
@@ -36,25 +39,39 @@ def query_dicom(project_name, session, pj_path, dicom_query, download_root):
                 df, dv = dict_keys(dicom_query)  
                 #pdb.set_trace() % careful dicom_tag.dir not list all?
                 if all(ismember0(df, dicom_tag.dir())):                   
-                    if value_check(dicom_tag, df, dv): 
+                    out, query_out = value_check(dicom_tag, df, dv)
+                    if out : 
                         files_paths.append(file_path)
-                        download_path = os.path.join(download_root, SL, EL, SCL)
-                        if (os.path.isdir(download_path)):
-                            exps.scans[SCL].download_dir(download_path)
-                        else: 
-                            os.makedirs(download_path) 
-                            exps.scans[SCL].download_dir(download_path) 
+                        download_paths.append(os.path.join(download_root, SL, EL, SCL))
+                        query_result.append(query_out)
+                        scans_obj.append(exps.scans[SCL])
                     else:
                         print('field exist, value did not match')    
                 else:
                     print('query field did not exist')
-    return files_paths    
-    
+               
+    return files_paths, query_result, scans_obj, download_paths  
+
+
+def download_files(scans_obj, download_paths): 
+   
+    assert(len(scans_obj) == len(download_paths))
+    cnt = 0
+    for ifile in scans_obj:
+        if (os.path.isdir(download_paths[cnt])):
+            ifile.download_dir(download_paths[cnt])
+        else: 
+            os.makedirs(download_paths[cnt]) 
+            ifile.download_dir(download_paths[cnt])
+        cnt+=1
+
+
 def ismember0(a,b):
     
     B_unique_sorted, B_idx = np.unique(a, return_index=True)
     B_in_A_bool = np.in1d(B_unique_sorted, b, assume_unique=True)
     return B_in_A_bool
+
     
 def dict_keys(dicom_query):
     df = []
@@ -67,15 +84,32 @@ def dict_keys(dicom_query):
         dv.append(fv)
     return df, dv
 
+
 def value_check(dicom_tag,df,list_value):
-    query_v = []
-    for i in df:
-        query_v.append(str(dicom_tag[i].value).lower())  
-    if query_v == list_value: 
-       out = True
-    else:
-       out = False
-    return out   
+    out = np.zeros(len(df),dtype=bool)
+    dicom_values = []
+    cnt = 0
+    for i in df:        
+        dicom_v = str(dicom_tag[i].value).lower()
+        dicom_values.append(dicom_v)
+        # 一個個比對, 但有tolerance
+        # print(dicom_v)
+        # print(list_value)
+        # print(list_value[cnt])
+        if len(dicom_v) >= len(list_value[cnt]):
+           short_one = list_value[cnt]
+           long_one = dicom_v
+        else:
+           short_one = dicom_v
+           long_one = list_value[cnt] 
+        # print(out)   
+        if short_one in long_one:              
+           out[cnt] = True
+                
+        cnt+=1
+    out = all(out) 
+        
+    return out, dicom_values    
 
 
 # test2_pj = session.projects["test_pj2"]
