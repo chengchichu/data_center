@@ -15,9 +15,9 @@ config.read('xnatconfig.ini')
 
 
 server_data_root_path = os.path.join(config['default']['url'],'xnat-docker-compose/xnat-data/archive')
-url = config['default']['url'] # xnat ip
+#url = config['default']['url'] # xnat ip
 #usr = config['default']['usr'] # 
-#password = config['default']['password']# your password
+password = config['default']['password']# your password
 
 def load(project_name, usr, password):
 
