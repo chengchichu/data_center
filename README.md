@@ -1,3 +1,4 @@
+
 # xnat
 
 
@@ -15,6 +16,10 @@ xnat_export.ipynb 如何以dicom tag query影像範例
 
 
 dicom Query 說明
+
+1/18 update 將xnat download分為兩個過程, 1. 利用query_dicom Function找出要的路徑和回傳query的result, 請使用者檢查query的結果然後
+篩選 2.利用download_files Function下載檔案
+
 
 聯集是default的形式
 
