@@ -45,27 +45,41 @@ def query_dicom(project_name, session, pj_path, dicom_query, download_root):
                         download_paths.append(os.path.join(download_root, SL, EL, SCL))
                         query_result.append(query_out)
                         scans_obj.append(exps.scans[SCL])
-                    else:
-                        print('field exist, value did not match')    
-                else:
-                    print('query field did not exist')
-               
+                #     else:
+                #         print('field exist, value did not match')    
+                # else:
+                #     print('query field did not exist')
+                
     return files_paths, query_result, scans_obj, download_paths  
+
+def select_files(download_paths, query_result, selector):
+
+    assert(len(query_result[0]) == len(selector))
+   
+    selected = [query_result[i] == selector for i in range(len(query_result))]
+    paths_to_download = [download_paths[i] for i in selected if i == True]
+   
+    return paths_to_download   
 
 
 def download_files(scans_obj, download_paths): 
    
     assert(len(scans_obj) == len(download_paths))
-    cnt = 0
-    for ifile in scans_obj:
-        if (os.path.isdir(download_paths[cnt])):
-            ifile.download_dir(download_paths[cnt])
-        else: 
-            os.makedirs(download_paths[cnt]) 
-            ifile.download_dir(download_paths[cnt])
-        cnt+=1
-
-
+    
+    try:
+        cnt = 0
+        for ifile in scans_obj:
+            if (os.path.isdir(download_paths[cnt])):
+                ifile.download_dir(download_paths[cnt])
+            else: 
+                os.makedirs(download_paths[cnt]) 
+                ifile.download_dir(download_paths[cnt])
+            cnt+=1
+    except:
+        print('download error')  
+    
+    print('{} total files, {} files sucessfully download'.format(len(scans_obj),cnt))
+    
 def ismember0(a,b):
     
     B_unique_sorted, B_idx = np.unique(a, return_index=True)
