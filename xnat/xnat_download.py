@@ -57,7 +57,7 @@ def select_files(download_paths, query_result, selector):
     assert(len(query_result[0]) == len(selector))
    
     selected = [query_result[i] == selector for i in range(len(query_result))]
-    paths_to_download = [download_paths[i] for i in selected if i == True]
+    paths_to_download = [i for i, j in zip(download_paths, selected) if j == True]
    
     return paths_to_download   
 
