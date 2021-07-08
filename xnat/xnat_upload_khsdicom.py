@@ -32,6 +32,7 @@ def connect_xnat(url, usr, password):
     session = xnat.connect(url, user=usr, password=password)
     return session
 
+
 # 把所有輸入路徑zip為單一個file
 def zipit(folders, zip_filename):
     zip_file = zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED)
@@ -56,11 +57,14 @@ def img_uploader(root_path, session, project_name, patient_ID, exp, pidn):
         fs_one_exp = exp['fs'][exp['img'] == exp_id]       
         zipit(fs_one_exp.tolist(), archive_path)
 
-        experiment = session.services.import_(archive_path,
-                                          project=project_name,
-                                          subject=pidn,
-                                          experiment=exp_id)
-                                         
+        try: 
+            experiment = session.services.import_(archive_path,
+                                              project=project_name,
+                                              subject=pidn,
+                                              experiment=exp_id)
+        except:
+            print('fails')
+                                 
         os.remove(archive_path)
     return experiment
 
@@ -70,7 +74,7 @@ def get_DICOM_info(root_path, patient_ID):
     fs = []
     for root, dirs, files in os.walk(os.path.join(root_path, patient_ID)):
         if files:
-            if files[0].endswith('.dcm'):
+            if (files[0].endswith('.dcm')) | (files[0].endswith('.DCM')):
                 head_info = dcmread(os.path.join(root, files[0]), stop_before_pixels=True, force=True)
               #  pdb.set_trace()
                 # p_ID = head_info.data_element('PatientID').value
@@ -109,9 +113,9 @@ def get_img_report(img_reports, image_No):
 #         os.remove(os.path.realpath(text_file.name))
 
 
-
 if __name__ == '__main__':
 
+    # prepare your datalist
     xlslist = pd.read_csv('/home/anpo/Desktop/pyscript/2AI_data_20210518.csv')
     xlslist_re = xlslist.rename(columns={'gender':'G-code', 'Unnamed: 4':'Gender', 'his':'HIS', 'dicom_pidn':'PIDN', 'birthday': 'Birthday'})
     xlslist2 = pd.read_csv('/home/anpo/Desktop/pyscript/ai-missing-20210524.csv')
@@ -126,22 +130,22 @@ if __name__ == '__main__':
     pd.concat((xlslist_re,xlslist2))
     xlist_all = pd.concat((xlslist_re,xlslist2))
     
-    project_name = 'BRS-KHS-1'
-    session = xnat.connect('http://10.30.223.96:8080', user='anpo', password='espesp043')
-    pyxnatobj = pyxnat.Interface('http://10.30.223.96:8080','anpo','espesp043')
-    root_path = '/media/anpo/Backup Plus/DICOM_from_KHS_2021'
-    datalist = next(os.walk('/media/anpo/Backup Plus/DICOM_from_KHS_2021/'))[1]
+    project_name = 'BRS-KHS-1' # project的名稱
+    session = xnat.connect('http://10.30.223.96:8080', user='', password='') # 輸入你的帳號密碼
+    pyxnatobj = pyxnat.Interface('http://10.30.223.96:8080','','') # 這個for meta data upload
+    root_path = '/media/anpo/Transcend/DICOM_from_KHS_2021' # data 放的位置
+    datalist = next(os.walk(root_path))[1]
       
     complete = [] 
     fails = []
     meta = {}
     for patient_ID in datalist:
-        # image_No = get_DICOM_info(root_path, patient_ID)
-        
+      
         print(patient_ID)
         patient_ID_ = patient_ID.replace(' ', '')
         image_No = patient_ID_.split('-')[1]
         pidn = xlist_all['PIDN'][xlist_all['HIS'] == int(image_No)].values[0]       
+        print(pidn)
         gender = xlist_all['Gender'][xlist_all['HIS'] == int(image_No)].values
         info = {} 
 
@@ -154,25 +158,28 @@ if __name__ == '__main__':
         meta[str(pidn)] = info
         
         if pidn.size:
-           print(str(pidn))
-           try:              
-               exp_table = get_DICOM_info(root_path, patient_ID)
-               experiment = img_uploader(root_path, session, project_name, patient_ID, exp_table, pidn)
-               complete.append(patient_ID)             
-           except:              
-               print('fail')
-               fails.append(patient_ID)
+            print(str(pidn))
+            try:              
+                exp_table = get_DICOM_info(root_path, patient_ID)
+                experiment = img_uploader(root_path, session, project_name, patient_ID, exp_table, pidn)
+                complete.append(patient_ID)             
+            except:              
+                print('fail')
+                fails.append(patient_ID)
                
-  # metadata 
+                
+# metadata 
 for pidn, j in meta.items():
-    if int(pidn) not in [4315,1432]:
+    
+    try:
         session.projects[project_name].subjects[str(pidn)].demographics.handedness = j['handedness']
         session.projects[project_name].subjects[str(pidn)].demographics.gender = j['gender']
         my_project = pyxnatobj.select.project(project_name)
         my_subject = my_project.subject(str(pidn))
         my_subject.attrs.mset({'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/YOB': j['YOB']})
         my_subject.attrs.mset({'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/dob': j['dob']})
-
+    except:
+        print('no subject found')
 
 #
 # import os
